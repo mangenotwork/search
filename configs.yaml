@@ -1,0 +1,6 @@
+# http service 端口
+http_service:
+  prod: 18888
+
+# data path
+data_path: "/media/ManGe/fe3b15b2-5de5-42d6-98ce-ed93b8af992b/mange_search_data"
