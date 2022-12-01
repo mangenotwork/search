@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"github.com/mangenotwork/search/entity"
 	"github.com/mangenotwork/search/utils"
 	"github.com/mangenotwork/search/utils/logger"
 	"gopkg.in/yaml.v3"
@@ -38,5 +39,10 @@ func InitConf() {
 
 	utils.Mkdir(Conf.DataPath + "/doc/")
 	utils.Mkdir(Conf.DataPath + "/index/")
+	utils.Mkdir(Conf.DataPath + "/theme/")
+
+	entity.ThemePath = Conf.DataPath + "/theme/"
+	entity.DocPath = Conf.DataPath + "/doc/"
+	entity.IndexPath = Conf.DataPath + "/index/"
 
 }

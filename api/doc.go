@@ -2,25 +2,26 @@ package api
 
 import (
 	"bufio"
-	"bytes"
-	"compress/gzip"
-	jsoniter "github.com/json-iterator/go"
+	"fmt"
 	"github.com/mangenotwork/search/entity"
+	"github.com/mangenotwork/search/utils"
 	"github.com/mangenotwork/search/utils/logger"
-	"io"
 	"os"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type APIDoc struct {
 }
 
 // Set 写入文档
-func (api *APIDoc) Set(doc *entity.Doc) {
+func (api *APIDoc) Set(theme string, doc *entity.Doc) {
 	// 存储文档， 存在则更新
-	docFilePath := "./doc/" + doc.ID
-	docData, err := DataEncoder(doc)
+	docTheme := entity.DocPath + theme
+	utils.Mkdir(docTheme)
+
+	docFilePath := docTheme + "/" + doc.ID
+	logger.Info("docFilePath = ", docFilePath)
+
+	docData, err := utils.DataEncoder(doc)
 	if err != nil {
 		logger.Error("文档不能被压缩, err = ", err)
 		return
@@ -45,58 +46,19 @@ func (api *APIDoc) Set(doc *entity.Doc) {
 	if err != nil {
 		logger.Error("写入到文件中失败, err = ", err)
 	}
+
+	// TODO 创建倒排索引
+
 }
 
-func (api *APIDoc) Get(docId string) (*entity.Doc, error) {
+func (api *APIDoc) Get(theme string, docId string) (*entity.Doc, error) {
 	data := &entity.Doc{}
-	docFilePath := "./doc/" + docId
+	docFilePath := entity.DocPath + theme + "/" + docId
 	content, err := os.ReadFile(docFilePath)
 	if err != nil {
 		logger.Error("read file error:%v\n", err)
-		return data, err
+		return data, fmt.Errorf("no such doc.")
 	}
-	err = DataDecoder(content, &data)
+	err = utils.DataDecoder(content, &data)
 	return data, err
-}
-
-// DataEncoder 数据量大，使用 json 序列化+gzip压缩
-func DataEncoder(obj interface{}) ([]byte, error) {
-	b, err := json.Marshal(obj)
-	if err != nil {
-		return []byte(""), err
-	}
-	return GzipCompress(b), nil
-}
-
-// DataDecoder 解码
-func DataDecoder(data []byte, obj interface{}) error {
-	b, err := GzipDecompress(data)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(b, obj)
-}
-
-// GzipCompress gzip压缩
-func GzipCompress(src []byte) []byte {
-	var in bytes.Buffer
-	w, _ := gzip.NewWriterLevel(&in, gzip.BestCompression)
-	//w := gzip.NewWriter(&in)
-	_, _ = w.Write(src)
-	_ = w.Close()
-	return in.Bytes()
-}
-
-// GzipDecompress gzip解压
-func GzipDecompress(src []byte) ([]byte, error) {
-	reader := bytes.NewReader(src)
-	gr, err := gzip.NewReader(reader)
-	if err != nil {
-		return []byte(""), err
-	}
-	bf := make([]byte, 0)
-	buf := bytes.NewBuffer(bf)
-	_, err = io.Copy(buf, gr)
-	err = gr.Close()
-	return buf.Bytes(), nil
 }

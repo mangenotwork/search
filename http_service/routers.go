@@ -50,16 +50,3 @@ func GetIP(r *http.Request) (ip string) {
 	}
 	return "0.0.0.0"
 }
-
-func V1() {
-	v1 := Router.Group("", HttpMiddleware())
-
-	v1.GET("/", Index)
-	v1.GET("/search", Search)
-	v1.GET("/term", GetTerm)
-
-	v1.POST("/theme", NewTheme) // Theme 创建主题
-	// Theme 查看主题
-	v1.POST("/doc", SetDoc) // 写文件
-	v1.GET("/doc", GetDoc)  // 读文档
-}

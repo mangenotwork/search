@@ -61,13 +61,8 @@ func GetTerm(c *gin.Context) {
 }
 
 func SetDoc(c *gin.Context) {
-	theme := c.Query("theme")       //主题
-	isAuthor := c.Query("author")   // 是否对 author 创建索引 0:否，1:是
-	isContent := c.Query("content") // 是否对 content 创建索引 0:否，1:是
-
+	theme := c.Param("theme") //主题
 	logger.Info("theme = ", theme)
-	logger.Info("author = ", isAuthor)
-	logger.Info("content = ", isContent)
 
 	param := &entity.Doc{}
 	err := c.BindJSON(param)
@@ -75,13 +70,14 @@ func SetDoc(c *gin.Context) {
 		APIOutPut(c, 1, 0, "", err.Error())
 		return
 	}
-	new(api.APIDoc).Set(param)
+	new(api.APIDoc).Set(theme, param)
 	APIOutPut(c, 0, 0, "ok", "ok")
 }
 
 func GetDoc(c *gin.Context) {
+	theme := c.Param("theme") //主题
 	docId := c.Query("doc_id")
-	data, err := new(api.APIDoc).Get(docId)
+	data, err := new(api.APIDoc).Get(theme, docId)
 	if err != nil {
 		APIOutPut(c, 1, 0, "", err.Error())
 		return
@@ -89,6 +85,40 @@ func GetDoc(c *gin.Context) {
 	APIOutPut(c, 0, 0, data, "ok")
 }
 
-func NewTheme(c *gin.Context) {
-	APIOutPut(c, 0, 0, "", "ok")
+func CreatedTheme(c *gin.Context) {
+	param := &entity.Theme{}
+	err := c.BindJSON(param)
+	if err != nil {
+		APIOutPut(c, 1, 0, "", err.Error())
+		return
+	}
+	err = new(api.APITheme).Created(param)
+	if err != nil {
+		APIOutPut(c, 1, 0, "", err.Error())
+		return
+	}
+	APIOutPut(c, 0, 0, "", "创建成功")
+}
+
+func GetThemeList(c *gin.Context) {
+	data := new(api.APITheme).GetAll()
+	APIOutPut(c, 0, 0, data, "ok")
+}
+
+func GetTheme(c *gin.Context) {
+	name := c.Query("name")
+	data, err := new(api.APITheme).Get(name)
+	if err != nil {
+		APIOutPut(c, 1, 0, "", err.Error())
+		return
+	}
+	APIOutPut(c, 0, 0, data, "ok")
+}
+
+func DelTheme(c *gin.Context) {
+
+}
+
+func UpdateTheme(c *gin.Context) {
+
 }
