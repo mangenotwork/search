@@ -190,12 +190,12 @@ func Mkdir(term string) {
 	}
 }
 
-func SetPostings(docId, text string, docStamp, orderInt int64) {
-
+func SetPostings(theme, docId, text string, docStamp, orderInt int64) {
+	dir := entity.IndexPath + theme + "/"
 	for _, v := range TermExtract(text) {
 
 		// 创建一个 term目录
-		Mkdir(entity.IndexPath + v.Text)
+		Mkdir(dir + v.Text)
 
 		//
 		// 每个索引包含 一个 信息文件 主要记录索引存储结构
@@ -215,9 +215,9 @@ func SetPostings(docId, text string, docStamp, orderInt int64) {
 		//
 		// 存储结构  []*d{docId, value(用来排序的), start, end}
 		//
-		pltFile := entity.IndexPath + v.Text + "/" + "1.plt"
-		ploFile := entity.IndexPath + v.Text + "/" + "1.plo"
-		plfFile := entity.IndexPath + v.Text + "/" + "1.plf"
+		pltFile := dir + v.Text + "/" + "1.plt"
+		ploFile := dir + v.Text + "/" + "1.plo"
+		plfFile := dir + v.Text + "/" + "1.plf"
 
 		pltList := make([]*entity.PL, 0)
 		ploList := make([]*entity.PL, 0)

@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-func GetSearchFile(term, sortTypeType string) []*entity.PL {
-	filePath := entity.IndexPath + term
+func GetSearchFile(theme, term, sortTypeType string) []*entity.PL {
+	filePath := entity.IndexPath + theme + "/" + term
 	data := make([]*entity.PL, 0)
 	//  t: 时间，  o: 排序值, f: 词频
 	switch sortTypeType {

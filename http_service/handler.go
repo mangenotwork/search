@@ -6,6 +6,7 @@ import (
 	"github.com/mangenotwork/search/api"
 	"github.com/mangenotwork/search/core"
 	"github.com/mangenotwork/search/entity"
+	"github.com/mangenotwork/search/utils"
 	"github.com/mangenotwork/search/utils/logger"
 	"net/http"
 	"time"
@@ -48,8 +49,69 @@ func Index(c *gin.Context) {
 }
 
 func Search(c *gin.Context) {
+	theme := c.Param("theme")   // *theme  主题
+	word := c.Query("word")     // *word  搜索词
+	sortType := c.Query("sort") // sort  排序类型 t: 时间，  o: 排序值, f: 词频   默认t
+	// *out   输出结构  默认 id
+	// id: 只输出docId,
+	// list: 输出列表有 docId title author time_stamp OrderInt ,
+	// full: 输出除 content 外的数据，并且含有关键词的 位置信息数据
+	out := c.Query("out")
+	pgStr := c.Query("pg")       // pg  页数   默认 1
+	countStr := c.Query("count") // count  每页是数量  最大值不超过 100   默认100
 
-	APIOutPut(c, 0, 0, "", "ok")
+	if len(theme) < 1 {
+		APIOutPut(c, 1, 0, "", "缺少参数 theme ")
+		return
+	}
+
+	if len(word) < 1 {
+		APIOutPut(c, 1, 0, "", "缺少搜索词 word ")
+		return
+	}
+
+	if sortType != "t" && sortType != "o" && sortType != "f" {
+		sortType = "t"
+	}
+
+	if out != "id" && out != "list" && out != "full" {
+		out = "id"
+	}
+
+	pg := utils.Any2Int(pgStr)
+	if pg < 1 {
+		pg = 1
+	}
+
+	count := utils.Any2Int(countStr)
+	if count < 1 {
+		count = 100
+	}
+
+	switch out {
+	case "id":
+		data, err := new(api.APISearch).SearchId(theme, word, sortType, count)
+		if err != nil {
+			APIOutPut(c, 1, 0, "", err.Error())
+			return
+		}
+		APIOutPut(c, 0, 0, data, "ok")
+	case "list":
+		data, err := new(api.APISearch).SearchList(theme, word, sortType, count)
+		if err != nil {
+			APIOutPut(c, 1, 0, "", err.Error())
+			return
+		}
+		APIOutPut(c, 0, 0, data, "ok")
+	case "full":
+		data, err := new(api.APISearch).SearchFull(theme, word, sortType, count)
+		if err != nil {
+			APIOutPut(c, 1, 0, "", err.Error())
+			return
+		}
+		APIOutPut(c, 0, 0, data, "ok")
+	}
+
 }
 
 func GetTerm(c *gin.Context) {
@@ -122,8 +184,9 @@ func UpdateTheme(c *gin.Context) {
 }
 
 func TermData(c *gin.Context) {
+	theme := c.Param("theme") //主题
 	word := c.Query("word")
 	sortType := c.Query("sort") // t: 时间，  o: 排序值, f: 词频
-	data := new(api.APISearch).GetTermData(word, sortType)
+	data := new(api.APISearch).GetTermData(theme, word, sortType, 100)
 	APIOutPut(c, 0, 0, data, "ok")
 }

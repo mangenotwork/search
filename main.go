@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/mangenotwork/search/api"
 	"github.com/mangenotwork/search/conf"
 	"github.com/mangenotwork/search/http_service"
 	"github.com/mangenotwork/search/utils"
@@ -14,7 +15,8 @@ func main() {
 	// 读取配置文件
 	conf.InitConf()
 
-	// 检查分词文件
+	// 初始化缓存
+	api.InitCache()
 
 	// 连接集群
 

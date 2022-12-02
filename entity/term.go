@@ -13,3 +13,8 @@ type PL struct {
 	End   int
 	Start int
 }
+
+type PLTerm struct {
+	TermText string
+	PL
+}

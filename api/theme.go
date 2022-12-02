@@ -13,6 +13,25 @@ import (
 type APITheme struct {
 }
 
+var ThemeCache map[string]*entity.Theme
+
+// ThemeCacheInit ThemeCache 初始化
+func (api *APITheme) ThemeCacheInit() {
+	ThemeCache = map[string]*entity.Theme{}
+	for _, v := range api.GetAll() {
+		logger.Info("初始化 Theme = ", v)
+		ThemeCache[v.Name] = v
+	}
+}
+
+func (api *APITheme) ThemeCacheGet(theme string) (*entity.Theme, error) {
+	v, ok := ThemeCache[theme]
+	if !ok {
+		return nil, fmt.Errorf("nil")
+	}
+	return v, nil
+}
+
 func (api *APITheme) Created(theme *entity.Theme) error {
 	themeFilePath := entity.ThemePath + theme.Name
 
@@ -46,6 +65,10 @@ func (api *APITheme) Created(theme *entity.Theme) error {
 	if err != nil {
 		logger.Error("写入到文件中失败, err = ", err)
 	}
+
+	// 更新缓存
+	api.ThemeCacheInit()
+
 	return nil
 }
 

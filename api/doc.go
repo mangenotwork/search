@@ -50,7 +50,7 @@ func (api *APIDoc) Set(theme string, doc *entity.Doc) {
 
 	// TODO 创建倒排索引
 	// 对title 强制倒排索引
-	core.SetPostings(doc.ID, doc.Title, doc.TimeStamp, doc.OrderInt)
+	core.SetPostings(theme, doc.ID, doc.Title, doc.TimeStamp, doc.OrderInt)
 
 }
 
