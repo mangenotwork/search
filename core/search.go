@@ -1,32 +1,38 @@
 package core
 
 import (
+	"github.com/mangenotwork/search/entity"
+	"github.com/mangenotwork/search/utils"
 	"github.com/mangenotwork/search/utils/logger"
-	"log"
 	"os"
 	"strings"
 )
 
-func Search() []string {
-	work := "推特上发了一段视频"
-
-	termList := TermExtract(work)
-
-	termList = append(termList, work)
-
-	log.Println("term list = ", termList)
-
-	rse := NewSet()
-
-	// 分开查
-	for _, v := range termList {
-		for _, a := range Find(v) {
-			rse.Add(a)
-		}
+func GetSearchFile(term, sortTypeType string) []*entity.PL {
+	filePath := entity.IndexPath + term
+	data := make([]*entity.PL, 0)
+	//  t: 时间，  o: 排序值, f: 词频
+	switch sortTypeType {
+	case "t":
+		filePath += "/1.plt"
+	case "o":
+		filePath += "/1.plo"
+	case "f":
+		filePath += "/1.plf"
 	}
-	rseList := rse.List()
-	logger.Info("rse = ", rseList)
-	return rseList
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		logger.Error("read file error:%v\n", err)
+		return data
+	}
+
+	err = utils.DataDecoder(content, &data)
+	if err != nil {
+		logger.Error("解压数据失败 :%v\n", err)
+		return data
+	}
+
+	return data
 }
 
 func Find(term string) []string {

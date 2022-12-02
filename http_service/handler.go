@@ -49,9 +49,7 @@ func Index(c *gin.Context) {
 
 func Search(c *gin.Context) {
 
-	rse := core.Search()
-
-	APIOutPut(c, 0, 0, rse, "ok")
+	APIOutPut(c, 0, 0, "", "ok")
 }
 
 func GetTerm(c *gin.Context) {
@@ -121,4 +119,11 @@ func DelTheme(c *gin.Context) {
 
 func UpdateTheme(c *gin.Context) {
 
+}
+
+func TermData(c *gin.Context) {
+	word := c.Query("word")
+	sortType := c.Query("sort") // t: 时间，  o: 排序值, f: 词频
+	data := new(api.APISearch).GetTermData(word, sortType)
+	APIOutPut(c, 0, 0, data, "ok")
 }
