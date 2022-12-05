@@ -16,6 +16,7 @@ var (
 	seg gse.Segmenter
 )
 
+// 加载分词词典
 func init() {
 	// load default dict
 	err := seg.LoadDict()
@@ -23,10 +24,6 @@ func init() {
 	if err != nil {
 		panic("segment error")
 	}
-}
-
-func Case() {
-	segCut()
 }
 
 // TermExtract 提取索引词
@@ -40,7 +37,7 @@ func TermExtract(str string) []*entity.Term {
 		txt := t.Text()
 		end := v.End()
 		start := v.Start()
-		logger.Info("txt = ", txt, p)
+		//logger.Info("txt = ", txt, p)
 		if p == "w" {
 			continue
 		}
@@ -89,79 +86,6 @@ func GetTermCase(str string) []string {
 	return termList
 }
 
-// 这是一个测试
-func segCut() {
-	// 文本id
-	docId := "2"
-	// 分词文本
-	tb := "综合俄新社、《消息报》等多家俄媒报道，欧盟委员会主席乌尔苏拉·冯德莱恩11月30日早些时候在推特上发了一段视频，她在视频中称，俄罗斯对乌克兰发起特别军事行动以来，超10万名乌克兰士兵和超2万平民已经死亡。随后，她用一段新视频替换了原视频，新视频中关于乌军损失数据的片段“消失了”。对此，俄罗斯联邦安全会议副主席梅德韦杰夫当天晚些时候作出回应。\n\n冯德莱恩 资料图冯德莱恩 资料图\n　　梅德韦杰夫当天在社交媒体VK上先是写道：“疯狂的乌尔苏拉大妈在自己的推特账号上向世界宣布，乌克兰武装部队蒙受‘10万损失’。随后，这一消息被删除了，经过了修改。”经典美文，听写——让心情舒畅！每天上午10点准时与大家相见。Hints:Southern Africarly African American: Jumping the Broom In the times of slavery in this country, African American couples were not allowed to formally marry and live together. To make a public declaration of their love and commitment, a man and woman jumped over a broom into matrimony, to the beat of drums. The broom has long held significant meaning for the various Africans, symbolizing, the start of home - making for the newlywed couple. In Southern Africa, the day after the wedding, the bride assisted the other women in the family in sweeping the courtyard, indicating her dutiful willing ness to help her in-laws with housework till the newlyweds could move to their new home. Some African-American couples today are choosing to include this symbolic rite in their wedding ceremony.早期非洲裔美国人：跳扫帚在美国的黑奴时代，黑人男女是不允许正式结婚生活在一起的。为了向世人宣布他们的.爱情和婚约，一对黑人男女和着鼓声的节奏，一起跳过一把扫帚。（扫帚对各种非洲人长期来都具有很重要的意义，因为它意味着新婚夫妇组成家庭的开始。在南部非洲，新娘在婚后的第一天要帮助夫家的其他女性清扫院子，以此表明在住进自己的新家前，她愿意尽职地帮助丈夫的家人承担家务劳动。）直至今日，一些美国黑人还在他们的婚礼上举行这种象征性的仪式。这篇材料你能听出多少？点击这里做听写，提高外语水平>>"
-	segments := seg.Segment([]byte(tb))
-
-	for _, v := range segments {
-		t := v.Token()
-		p := t.Pos()
-		txt := t.Text()
-
-		if strings.Index(p, "n") == -1 && p != "x" {
-			continue
-		}
-		if p == "x" && !ContainsEnglish(txt) {
-			continue
-		}
-
-		logger.Info(txt, " \t |", "词频 = ", v.Token().Freq(), " | 词性标注 = ", p)
-
-		// 这个 txt 就是一个  term
-
-		// 创建一个 term目录
-		Mkdir("./index/" + txt)
-
-		invertedFile := "./index/" + txt + "/" + "1.t"
-
-		postingList := make([]string, 0)
-
-		contentStr := ""
-		if !utils.FileExists(invertedFile) {
-			postingList = append(postingList, docId)
-		} else {
-			// 读取索引
-			content, err := os.ReadFile(invertedFile)
-			if err != nil {
-				fmt.Printf("read file error:%v\n", err)
-				return
-			}
-			contentStr = string(content)
-			postingList = strings.Split(contentStr, ";")
-			isSet := false
-			for _, v := range postingList {
-				if v == docId {
-					isSet = true
-					break
-				}
-			}
-			if !isSet {
-				postingList = append(postingList, docId)
-			}
-		}
-
-		file, err := os.OpenFile(invertedFile, os.O_WRONLY|os.O_CREATE, 0666)
-
-		if err != nil {
-
-			fmt.Println("文件打开失败", err)
-
-		}
-
-		//及时关闭file句柄
-		defer file.Close()
-		//写入文件时，使用带缓存的 *Writer
-		write := bufio.NewWriter(file)
-		write.WriteString(strings.Join(postingList, ";"))
-		// Flush将缓存的文件真正写入到文件中
-		write.Flush()
-	}
-}
-
 func ContainsEnglish(str string) bool {
 	dictionary := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	for _, v := range str {
@@ -190,90 +114,221 @@ func Mkdir(term string) {
 	}
 }
 
+// PLInfo 索引信息文件
+//
+// .pli
+// []*pliFile  file_name,valMax,valMin,
+// fNum 文件数量
+//
+// 每个索引包含 一个 信息文件 主要记录索引存储结构,每个文件最多存储100条数据
+//
+// 这样设计的缺点: 空间浪费，写慢
+// 这样设计的优点: 读快，读取结果已经被三个维度分别排序
+//
+// 文件：
+//
+// .plt 的文件 postingList time  按时间排序的数据存储  k:docId  v:time
+//
+// .plo 的文件 postingList orderInt 按排序值来进行排序 k:docId  v:orderInt
+//
+// .plf 的文件 postingList Freq 按词频值来进行排序  k:docId   v:Freq
+//
+// 结构:
+//
+// 存储结构  []*d{docId, value(用来排序的), start, end}
+type PLInfo struct {
+	PLDir   string        // 保存数据的路径
+	PLTFile []*PLFileInfo // 起到一个游标的作用, 时间排序数据文件， 排序规则:只有文档时间和词频两个维度 t>f
+	PLOFile []*PLFileInfo // 排序值排序数据文件，排序规则:有自定义排序值，文档时间，词频三个维度 o>t>f
+	PLFFile []*PLFileInfo // 按词频排序数据文件, 排序规则: 只有文档时间和词频两个维度  f>t
+	PLTFNum int           // 文件数量
+	PLOFNum int
+	PLFFNum int
+	StartF  int // 启始数， 1开始， 是最大的排序值的数据
+	EndF    int // 结束数，= FNum , 是最小的排序值的数据
+}
+
+type PLFileInfo struct {
+	FileId   int     // 文件编号
+	FileName string  // 文件名称
+	ValMax   float64 // 最大排序值
+	ValMin   float64 // 最小排序值
+	Num      int     // 数据条数
+}
+
 func SetPostings(theme, docId, text string, docStamp, orderInt int64) {
 	dir := entity.IndexPath + theme + "/"
 	for _, v := range TermExtract(text) {
-
+		plDir := dir + v.Text + "/"
 		// 创建一个 term目录
-		Mkdir(dir + v.Text)
-
-		//
-		// 每个索引包含 一个 信息文件 主要记录索引存储结构
-		//
-		// 这样设计的缺点: 空间浪费，写慢
-		// 这样设计的优点: 读快，读取结果已经被三个维度分别排序
-		//
-		// 文件：
-		//
-		// .plt 的文件 postingList time  按时间排序的数据存储  k:docId  v:time
-		//
-		// .plo 的文件 postingList orderInt 按排序值来进行排序 k:docId  v:orderInt
-		//
-		// .plf 的文件 postingList Freq 按词频值来进行排序  k:docId   v:Freq
-		//
-		// 结构:
-		//
-		// 存储结构  []*d{docId, value(用来排序的), start, end}
-		//
-		pltFile := dir + v.Text + "/" + "1.plt"
-		ploFile := dir + v.Text + "/" + "1.plo"
-		plfFile := dir + v.Text + "/" + "1.plf"
-
-		pltList := make([]*entity.PL, 0)
-		ploList := make([]*entity.PL, 0)
-		plfList := make([]*entity.PL, 0)
-
-		setPLData(docId, float64(docStamp), pltFile, pltList, v)
-		setPLData(docId, float64(orderInt), ploFile, ploList, v)
-		setPLData(docId, v.Freq, plfFile, plfList, v)
-
+		Mkdir(plDir)
+		// 是否存在信息文件，没有就初始化
+		pliFile := plDir + "i.pli"
+		if !utils.FileExists(pliFile) {
+			setPlInfo(plDir, pliFile)
+		}
+		// 获取当前信息
+		pliObj, err := getPlInfo(pliFile)
+		if err != nil {
+			logger.Error("获取词索引信息文件失败, err = ", err)
+			return
+		}
+		setPLData(docId, "plt", float64(docStamp), pliObj, v)
+		setPLData(docId, "plo", float64(orderInt), pliObj, v)
+		setPLData(docId, "plf", v.Freq, pliObj, v)
 	}
 }
 
-func setPLData(docId string, value float64, plFile string, plList []*entity.PL, term *entity.Term) {
+func setPLData(docId, plType string, value float64, pliObj *PLInfo, term *entity.Term) {
+
+	// 一条数据都不存在的情况
+	firstFile := fmt.Sprintf("%s1.%s", pliObj.PLDir, plType)
+	if !utils.FileExists(firstFile) {
+		logger.Info("不存在 firstFile = ", firstFile)
+		data := &entity.PL{docId, value, term.End, term.Start}
+		setData2FileInit(plType, value, pliObj, data)
+		return
+	}
+
+	// 只有一个文件，数据量小于100
+	var plFileObj []*PLFileInfo
+	num := 0
+	switch plType {
+	case "plt":
+		plFileObj = pliObj.PLTFile
+		num = pliObj.PLTFNum
+	case "plo":
+		plFileObj = pliObj.PLOFile
+		num = pliObj.PLOFNum
+	case "plf":
+		plFileObj = pliObj.PLFFile
+		num = pliObj.PLFFNum
+	}
+	logger.Info("当前 num 与  plFileObj[0].Num = ", num, plFileObj[0].Num)
+	if num == 1 && plFileObj[0].Num < 100 {
+		logger.Info("直接写入第一个文件")
+		// 直接读取文件写入
+		setData2File(pliObj, plType, docId, value, term)
+		return
+	}
+
+	// TODO 定位文件， 通过排序值定位这条数据应该被插入到哪个文件
+	notPos := false
+	thisMax := false
+	thisMin := false
+	logger.Error("执行范围查找 plFileObj = ", plFileObj)
+	for _, infoO := range plFileObj {
+		// 在这个范围
+		if value <= infoO.ValMax && value >= infoO.ValMin {
+			notPos = true
+			logger.Info("范围定在这个文件 ", infoO.FileName)
+			// TODO 读这个文件，然后写入数据，如果超过 100 条，将最后一个数据写入下一个文件  这个可以使用回调
+			data2File(infoO.FileId, pliObj, plType, docId, value, term)
+			break
+		}
+		if value > infoO.ValMax {
+			thisMax = true
+		}
+		if value < infoO.ValMin {
+			thisMin = true
+		}
+	}
+
+	// 最大 写在第一个文件
+	if !notPos && thisMax {
+		// TODO
+		data2File(1, pliObj, plType, docId, value, term)
+		return
+	}
+
+	// 最小 写在第二个文件
+	if !notPos && thisMin {
+		// TODO
+		data2File(pliObj.EndF, pliObj, plType, docId, value, term)
+		return
+	}
+
+}
+
+func data2File(fileNum int, pliObj *PLInfo, plType, docId string, value float64, term *entity.Term) {
+	plFile := fmt.Sprintf("%s%d.%s", pliObj.PLDir, fileNum, plType)
+	// 不存在就创建 就结束递归
 	if !utils.FileExists(plFile) {
-		// 不存在的情况
-		plList = append(plList, &entity.PL{docId, value, term.End, term.Start})
-	} else {
-		// 读取索引
-		content, err := os.ReadFile(plFile)
-		if err != nil {
-			fmt.Printf("read file error:%v\n", err)
-			return
-		}
-		err = utils.DataDecoder(content, &plList)
-		if err != nil {
-			logger.Error("pltFile 读取数据失败 = ", err)
-		}
-		// 查看是否存在， 如何存在就替换，不存在就增加
-		pltIsSet := false
-		i := 0
-		for _, pltData := range plList {
-			if pltData.Key == docId {
-				plList[i] = &entity.PL{docId, value, term.End, term.Start}
-				pltIsSet = true
-				break
-			}
+		logger.Error("不存在就创建 就结束递归")
+		data := &entity.PL{docId, value, term.End, term.Start}
+		setData2FileNumInit(fileNum, plType, pliObj, data)
+		return
+	}
+
+	plList := make([]*entity.PL, 0)
+	content, err := os.ReadFile(plFile)
+	if err != nil {
+		fmt.Printf("read file error:%v\n", err)
+		return
+	}
+	err = utils.DataDecoder(content, &plList)
+	if err != nil {
+		logger.Error("pltFile 读取数据失败 = ", err)
+	}
+
+	if plType == "plo" {
+		logger.Error("原本plList 有 = ", len(plList))
+	}
+
+	// 查看是否存在， 如何存在就替换，不存在就增加
+	pltIsSet := false
+	i := 0
+	valueLits := make([]float64, 0)
+	for _, pltData := range plList {
+		valueLits = append(valueLits, pltData.Value)
+		// 存在更新
+		if pltData.Key == docId {
+			plList[i] = &entity.PL{docId, value, term.End, term.Start}
+			valueLits[i] = value
+			pltIsSet = true
 			i++
+			continue
 		}
-		if !pltIsSet {
-			plList = append(plList, &entity.PL{docId, value, term.End, term.Start})
+		i++
+	}
+	// 不存在写入
+	if !pltIsSet {
+		plList = append(plList, &entity.PL{docId, value, term.End, term.Start})
+		valueLits = append(valueLits, value)
+		i++
+	}
+	// 排序
+	sort.Slice(plList, func(i, j int) bool {
+		return plList[i].Value > plList[j].Value
+	})
+	// 是否数据量超过100
+	var sendPlList []*entity.PL
+	thisFull := false
+
+	if plType == "plo" {
+		logger.Error("数据条数 : ", len(plList), " | i = ", i)
+	}
+
+	if i >= 100 {
+		sendPlList = plList[0:100]
+		if plType == "plo" {
+			logger.Error("超过100个数据 !!!!!!!!!! ")
 		}
-		// 排序
-		sort.Slice(plList, func(i, j int) bool {
-			return plList[i].Value > plList[j].Value
-		})
+		thisFull = true
+	} else {
+		sendPlList = plList
 	}
 	// 存储
-	pltListData, err := utils.DataEncoder(plList)
+	if plType == "plo" {
+		logger.Info("保存数据条数； sendPlList = ", len(sendPlList))
+	}
+	pltListData, err := utils.DataEncoder(sendPlList)
 	if err != nil {
 		logger.Error("压缩 pltList 失败 : ", err)
 	}
 	file, err := os.OpenFile(plFile, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
-
 		fmt.Println("文件打开失败", err)
-
 	}
 	//及时关闭file句柄
 	defer file.Close()
@@ -282,4 +337,417 @@ func setPLData(docId string, value float64, plFile string, plList []*entity.PL, 
 	write.Write(pltListData)
 	// Flush将缓存的文件真正写入到文件中
 	write.Flush()
+
+	// 更新信息
+	switch plType {
+	case "plt":
+		has := false
+		for index, f := range pliObj.PLTFile {
+			if f.FileName == plFile {
+				has = true
+				pliObj.PLTFile[index].ValMax = getMax(valueLits)
+				pliObj.PLTFile[index].ValMin = getMin(valueLits)
+				pliObj.PLTFile[index].Num = len(plList)
+				break
+			}
+		}
+		if !has {
+			pliObj.PLTFile = append(pliObj.PLTFile, &PLFileInfo{
+				FileId:   fileNum + 1,
+				FileName: plFile,
+				ValMax:   getMax(valueLits),
+				ValMin:   getMin(valueLits),
+				Num:      len(plList),
+			})
+			pliObj.PLFFNum++
+		}
+
+	case "plo":
+		has := false
+		for index, f := range pliObj.PLOFile {
+			if f.FileName == plFile {
+				has = true
+				pliObj.PLOFile[index].ValMax = getMax(valueLits)
+				pliObj.PLOFile[index].ValMin = getMin(valueLits)
+				pliObj.PLOFile[index].Num = len(plList)
+				break
+			}
+		}
+		if !has {
+			pliObj.PLOFile = append(pliObj.PLOFile, &PLFileInfo{
+				FileId:   fileNum + 1,
+				FileName: plFile,
+				ValMax:   getMax(valueLits),
+				ValMin:   getMin(valueLits),
+				Num:      len(plList),
+			})
+			pliObj.PLOFNum++
+		}
+
+	case "plf":
+		has := false
+		for index, f := range pliObj.PLFFile {
+			if f.FileName == plFile {
+				has = true
+				pliObj.PLFFile[index].ValMax = getMax(valueLits)
+				pliObj.PLFFile[index].ValMin = getMin(valueLits)
+				pliObj.PLFFile[index].Num = len(plList)
+				break
+			}
+		}
+		if !has {
+			pliObj.PLFFile = append(pliObj.PLFFile, &PLFileInfo{
+				FileId:   fileNum + 1,
+				FileName: plFile,
+				ValMax:   getMax(valueLits),
+				ValMin:   getMin(valueLits),
+				Num:      len(plList),
+			})
+			pliObj.PLFFNum++
+			pliObj.EndF = pliObj.PLFFNum
+		}
+
+	}
+
+	updatePlInfo(pliObj)
+
+	// TODO 超过100 数据往后移动直到插满
+	if thisFull {
+		nextData := plList[len(plList)-1]
+		if plType == "plo" {
+			logger.Error("超过100 数据往后移动直到插满 !!!! 数据 = ", nextData)
+		}
+
+		fileNum++
+		data2File(fileNum, pliObj, plType, nextData.Key, nextData.Value, &entity.Term{
+			End:   nextData.End,
+			Start: nextData.Start,
+		})
+	}
+}
+
+//// TODO 文件数据往后移动，直到填不满100条数据的文件
+//func nextData2File(nextNum int, pliObj *PLInfo, plType string, data *entity.PL) {
+//	fileName := fmt.Sprintf("%s%d.%s", pliObj.PLDir, nextNum, plType)
+//	// 不存在就创建 就结束递归
+//	if !utils.FileExists(fileName) {
+//		setData2FileNumInit(nextNum, plType, pliObj, data)
+//	} else {
+//		// 获取数据，将这条数据插入第一个
+//		plList := make([]*entity.PL, 0)
+//		content, err := os.ReadFile(fileName)
+//		if err != nil {
+//			fmt.Printf("read file error:%v\n", err)
+//			return
+//		}
+//		err = utils.DataDecoder(content, &plList)
+//		if err != nil {
+//			logger.Error("pltFile 读取数据失败 = ", err)
+//		}
+//		plList = append([]*entity.PL{data}, plList...)
+//		// 存储数据
+//
+//		// 更新信息的，value
+//
+//		// 如果数量大于100 继续递归
+//
+//	}
+//}
+
+// 直接写入文件
+func setData2File(pliObj *PLInfo, plType, docId string, value float64, term *entity.Term) {
+	plFile := fmt.Sprintf("%s%d.%s", pliObj.PLDir, 1, plType)
+	logger.Info("直接写入文件 ==== > ", plFile)
+	plList := make([]*entity.PL, 0)
+	content, err := os.ReadFile(plFile)
+	if err != nil {
+		fmt.Printf("read file error:%v\n", err)
+		return
+	}
+	err = utils.DataDecoder(content, &plList)
+	if err != nil {
+		logger.Error("pltFile 读取数据失败 = ", err)
+	}
+
+	// 查看是否存在， 如何存在就替换，不存在就增加
+	pltIsSet := false
+	i := 0
+	valueLits := make([]float64, 0)
+	for _, pltData := range plList {
+		valueLits = append(valueLits, pltData.Value)
+		// 存在更新
+		if pltData.Key == docId {
+			plList[i] = &entity.PL{docId, value, term.End, term.Start}
+			valueLits = append(valueLits, value)
+			pltIsSet = true
+			break
+		}
+		i++
+	}
+	// 不存在写入
+	if !pltIsSet {
+		plList = append(plList, &entity.PL{docId, value, term.End, term.Start})
+		valueLits = append(valueLits, value)
+	}
+	// 排序
+	sort.Slice(plList, func(i, j int) bool {
+		return plList[i].Value > plList[j].Value
+	})
+
+	// 存储
+	pltListData, err := utils.DataEncoder(plList)
+	if err != nil {
+		logger.Error("压缩 pltList 失败 : ", err)
+	}
+	file, err := os.OpenFile(plFile, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		fmt.Println("文件打开失败", err)
+	}
+	//及时关闭file句柄
+	defer file.Close()
+	//写入文件时，使用带缓存的 *Writer
+	write := bufio.NewWriter(file)
+	write.Write(pltListData)
+	// Flush将缓存的文件真正写入到文件中
+	write.Flush()
+
+	logger.Info("直接写入文件 plList len = ", len(plList))
+
+	// 更新信息
+	switch plType {
+	case "plt":
+		pliObj.PLTFile[0].Num = len(plList)
+
+	case "plo":
+		pliObj.PLOFile[0].Num = len(plList)
+
+	case "plf":
+		pliObj.PLFFile[0].Num = len(plList)
+
+	}
+	updatePlInfo(pliObj)
+}
+
+func setData2FileInit(plType string, value float64, pliObj *PLInfo, data *entity.PL) {
+	plList := make([]*entity.PL, 0)
+	plList = append(plList, data)
+	// 存储
+	pltListData, err := utils.DataEncoder(plList)
+	if err != nil {
+		logger.Error("压缩 pltList 失败 : ", err)
+	}
+	plFile := fmt.Sprintf("%s%d.%s", pliObj.PLDir, 1, plType)
+	logger.Info("写入文件  ======> ", plFile)
+	file, err := os.OpenFile(plFile, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		fmt.Println("文件打开失败", err)
+	}
+	//及时关闭file句柄
+	defer file.Close()
+	//写入文件时，使用带缓存的 *Writer
+	write := bufio.NewWriter(file)
+	write.Write(pltListData)
+	// Flush将缓存的文件真正写入到文件中
+	write.Flush()
+
+	// 更新信息
+	switch plType {
+	case "plt":
+		pliObj.PLTFile = append(pliObj.PLTFile, &PLFileInfo{
+			FileId:   1,
+			FileName: plFile,
+			ValMax:   value,
+			ValMin:   value,
+			Num:      1,
+		})
+
+	case "plo":
+		pliObj.PLOFile = append(pliObj.PLOFile, &PLFileInfo{
+			FileId:   1,
+			FileName: plFile,
+			ValMax:   value,
+			ValMin:   value,
+			Num:      1,
+		})
+
+	case "plf":
+		pliObj.PLFFile = append(pliObj.PLFFile, &PLFileInfo{
+			FileId:   1,
+			FileName: plFile,
+			ValMax:   value,
+			ValMin:   value,
+			Num:      1,
+		})
+
+	}
+	updatePlInfo(pliObj)
+}
+
+// 不存在就新建
+func setData2FileNumInit(num int, plType string, pliObj *PLInfo, data *entity.PL) {
+	plList := []*entity.PL{data}
+	pltListData, err := utils.DataEncoder(plList)
+	if err != nil {
+		logger.Error("压缩 pltList 失败 : ", err)
+	}
+	plFile := fmt.Sprintf("%s%d.%s", pliObj.PLDir, num, plType)
+	file, err := os.OpenFile(plFile, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		fmt.Println("文件打开失败", err)
+		return
+	}
+	//及时关闭file句柄
+	defer file.Close()
+	//写入文件时，使用带缓存的 *Writer
+	write := bufio.NewWriter(file)
+	write.Write(pltListData)
+	// Flush将缓存的文件真正写入到文件中
+	write.Flush()
+
+	// 更新信息
+	switch plType {
+	case "plt":
+		pliObj.PLTFile = append(pliObj.PLTFile, &PLFileInfo{
+			FileId:   num,
+			FileName: plFile,
+			ValMax:   data.Value,
+			ValMin:   data.Value,
+			Num:      1,
+		})
+		pliObj.PLTFNum++
+
+	case "plo":
+		pliObj.PLOFile = append(pliObj.PLOFile, &PLFileInfo{
+			FileId:   num,
+			FileName: plFile,
+			ValMax:   data.Value,
+			ValMin:   data.Value,
+			Num:      1,
+		})
+		pliObj.PLOFNum++
+
+	case "plf":
+
+		pliObj.PLFFile = append(pliObj.PLFFile, &PLFileInfo{
+			FileId:   num,
+			FileName: plFile,
+			ValMax:   data.Value,
+			ValMin:   data.Value,
+			Num:      1,
+		})
+		pliObj.PLFFNum++
+		pliObj.EndF = pliObj.PLFFNum
+
+	}
+	updatePlInfo(pliObj)
+}
+
+func setPlInfo(plDir, pliFile string) {
+	plInfo := &PLInfo{
+		PLDir:   plDir,
+		PLTFNum: 1,
+		PLOFNum: 1,
+		PLFFNum: 1,
+		StartF:  1,
+		EndF:    1,
+	}
+
+	plInfo.PLTFile = make([]*PLFileInfo, 0)
+	plInfo.PLOFile = make([]*PLFileInfo, 0)
+	plInfo.PLFFile = make([]*PLFileInfo, 0)
+
+	pltListData, err := utils.DataEncoder(plInfo)
+	if err != nil {
+		logger.Error("压缩 pltList 失败 : ", err)
+	}
+	file, err := os.OpenFile(pliFile, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		logger.Error("文件打开失败", err)
+	}
+	defer file.Close()
+	write := bufio.NewWriter(file)
+	write.Write(pltListData)
+	write.Flush()
+}
+
+func getPlInfo(pliFile string) (*PLInfo, error) {
+	logger.Info("获取 pliFile = ", pliFile)
+	plInfo := &PLInfo{}
+	content, err := os.ReadFile(pliFile)
+	if err != nil {
+		fmt.Printf("read file error:%v\n", err)
+		return nil, err
+	}
+	err = utils.DataDecoder(content, &plInfo)
+	if err != nil {
+		logger.Error("pltFile 读取数据失败 = ", err)
+	}
+	logger.Info("获取到的 getPlInfo = ", plInfo)
+	return plInfo, err
+}
+
+func updatePlInfo(pliObj *PLInfo) {
+	pliFile := pliObj.PLDir + "i.pli"
+	plInfoData, err := utils.DataEncoder(pliObj)
+	if err != nil {
+		logger.Error("压缩 pltList 失败 : ", err)
+	}
+	file, err := os.OpenFile(pliFile, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		logger.Error("文件打开失败", err)
+	}
+	defer file.Close()
+	write := bufio.NewWriter(file)
+	write.Write(plInfoData)
+	write.Flush()
+}
+
+func getMax(val []float64) float64 {
+	var max float64
+	for _, v := range val {
+		if v > max {
+			max = v
+		}
+	}
+	return max
+}
+
+func getMin(val []float64) float64 {
+	var min float64
+	for _, v := range val {
+		if min == 0 || v <= min {
+			min = v
+		}
+	}
+	return min
+}
+
+func SetPostingsAuthor(theme, docId, text string, docStamp, orderInt int64) {
+	dir := entity.IndexPath + theme + "/"
+	list := TermExtract(text)
+	list = append(list, &entity.Term{
+		Text:  text,
+		Freq:  1,
+		End:   0,
+		Start: len(text),
+	})
+	for _, v := range list {
+		plDir := dir + v.Text + "/"
+		// 创建一个 term目录
+		Mkdir(plDir)
+		// 是否存在信息文件，没有就初始化
+		pliFile := plDir + "i.pli"
+		if !utils.FileExists(pliFile) {
+			setPlInfo(plDir, pliFile)
+		}
+		// 获取当前信息
+		pliObj, err := getPlInfo(pliFile)
+		if err != nil {
+			logger.Error("获取词索引信息文件失败, err = ", err)
+			return
+		}
+		setPLData(docId, "plt", float64(docStamp), pliObj, v)
+		setPLData(docId, "plo", float64(orderInt), pliObj, v)
+		setPLData(docId, "plf", v.Freq, pliObj, v)
+	}
 }

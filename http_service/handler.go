@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/mangenotwork/search/api"
-	"github.com/mangenotwork/search/core"
 	"github.com/mangenotwork/search/entity"
 	"github.com/mangenotwork/search/utils"
 	"github.com/mangenotwork/search/utils/logger"
@@ -14,8 +13,9 @@ import (
 
 // ResponseJson 统一接口输出
 type ResponseJson struct {
-	Code      int64       `json:"code"`
-	Page      int64       `json:"page"`
+	Code int64 `json:"code"`
+	//Page      int64       `json:"page"`
+	Count     int         `json:"count"`
 	Msg       string      `json:"msg"`
 	Body      interface{} `json:"body"`
 	Take      int64       `json:"took"`
@@ -33,6 +33,7 @@ func APIOutPut(c *gin.Context, code int64, count int, data interface{}, msg stri
 		Code:      code,
 		Msg:       msg,
 		Body:      data,
+		Count:     count,
 		TimeStamp: time.Now().Unix(),
 		Take:      t,
 		TakeStr:   fmt.Sprintf("%fms", float64(t)/1e6),
@@ -43,7 +44,7 @@ func APIOutPut(c *gin.Context, code int64, count int, data interface{}, msg stri
 
 func Index(c *gin.Context) {
 
-	core.Case()
+	//core.Case()
 
 	APIOutPut(c, 0, 0, "ok", "ok")
 }
@@ -90,26 +91,26 @@ func Search(c *gin.Context) {
 
 	switch out {
 	case "id":
-		data, err := new(api.APISearch).SearchId(theme, word, sortType, count)
+		data, err := new(api.APISearch).SearchId(theme, word, sortType, pg, count)
 		if err != nil {
 			APIOutPut(c, 1, 0, "", err.Error())
 			return
 		}
-		APIOutPut(c, 0, 0, data, "ok")
+		APIOutPut(c, 0, len(data), data, "ok")
 	case "list":
-		data, err := new(api.APISearch).SearchList(theme, word, sortType, count)
+		data, err := new(api.APISearch).SearchList(theme, word, sortType, pg, count)
 		if err != nil {
 			APIOutPut(c, 1, 0, "", err.Error())
 			return
 		}
-		APIOutPut(c, 0, 0, data, "ok")
+		APIOutPut(c, 0, len(data), data, "ok")
 	case "full":
-		data, err := new(api.APISearch).SearchFull(theme, word, sortType, count)
+		data, err := new(api.APISearch).SearchFull(theme, word, sortType, pg, count)
 		if err != nil {
 			APIOutPut(c, 1, 0, "", err.Error())
 			return
 		}
-		APIOutPut(c, 0, 0, data, "ok")
+		APIOutPut(c, 0, len(data), data, "ok")
 	}
 
 }
@@ -130,7 +131,11 @@ func SetDoc(c *gin.Context) {
 		APIOutPut(c, 1, 0, "", err.Error())
 		return
 	}
-	new(api.APIDoc).Set(theme, param)
+	err = new(api.APIDoc).Set(theme, param)
+	if err != nil {
+		APIOutPut(c, 1, 0, "", err.Error())
+		return
+	}
 	APIOutPut(c, 0, 0, "ok", "ok")
 }
 

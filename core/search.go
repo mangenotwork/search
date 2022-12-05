@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"github.com/mangenotwork/search/entity"
 	"github.com/mangenotwork/search/utils"
 	"github.com/mangenotwork/search/utils/logger"
@@ -8,18 +9,21 @@ import (
 	"strings"
 )
 
-func GetSearchFile(theme, term, sortTypeType string) []*entity.PL {
+func GetSearchFile(theme, term, sortTypeType string, pg int) []*entity.PL {
 	filePath := entity.IndexPath + theme + "/" + term
 	data := make([]*entity.PL, 0)
 	//  t: 时间，  o: 排序值, f: 词频
 	switch sortTypeType {
 	case "t":
-		filePath += "/1.plt"
+		filePath += fmt.Sprintf("/%d.plt", pg)
 	case "o":
-		filePath += "/1.plo"
+		filePath += fmt.Sprintf("/%d.plo", pg)
 	case "f":
-		filePath += "/1.plf"
+		filePath += fmt.Sprintf("/%d.plf", pg)
 	}
+
+	logger.Error("filePath = ", filePath)
+
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		logger.Error("read file error:%v\n", err)
@@ -31,6 +35,8 @@ func GetSearchFile(theme, term, sortTypeType string) []*entity.PL {
 		logger.Error("解压数据失败 :%v\n", err)
 		return data
 	}
+
+	logger.Error("data = ", data, len(data))
 
 	return data
 }

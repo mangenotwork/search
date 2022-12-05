@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"github.com/mangenotwork/search/core"
 	"github.com/mangenotwork/search/entity"
+	"github.com/mangenotwork/search/utils/logger"
 )
 
 type APISearch struct {
 }
 
-func (api *APISearch) GetTermData(theme, word, sortType string, count int) []*entity.PL {
-	return core.GetSearchFile(theme, word, sortType)
+func (api *APISearch) GetTermData(theme, word, sortType string, pg int) []*entity.PL {
+	return core.GetSearchFile(theme, word, sortType, pg)
 }
 
-func (api *APISearch) SearchId(theme, word, sortType string, count int) ([]string, error) {
+func (api *APISearch) SearchId(theme, word, sortType string, pg, count int) ([]string, error) {
 	data := make([]string, 0)
-	s, err := api.Search(theme, word, sortType, count)
+	s, err := api.Search(theme, word, sortType, pg, count)
 	if err != nil {
 		return data, err
 	}
@@ -32,9 +33,9 @@ type OutList struct {
 	Author    string
 }
 
-func (api *APISearch) SearchList(theme, word, sortType string, count int) ([]*OutList, error) {
+func (api *APISearch) SearchList(theme, word, sortType string, pg, count int) ([]*OutList, error) {
 	data := make([]*OutList, 0)
-	s, err := api.Search(theme, word, sortType, count)
+	s, err := api.Search(theme, word, sortType, pg, count)
 	if err != nil {
 		return data, err
 	}
@@ -59,6 +60,7 @@ type FullList struct {
 	Author      string
 	OrderInt    int64
 	Description string
+	Content     string
 	End         int
 	Start       int
 	Theme       string
@@ -66,14 +68,15 @@ type FullList struct {
 	SortValue   float64
 }
 
-func (api *APISearch) SearchFull(theme, word, sortType string, count int) ([]*FullList, error) {
+func (api *APISearch) SearchFull(theme, word, sortType string, pg, count int) ([]*FullList, error) {
 	data := make([]*FullList, 0)
-	s, err := api.Search(theme, word, sortType, count)
+	s, err := api.Search(theme, word, sortType, pg, count)
 	if err != nil {
 		return data, err
 	}
 
 	for _, v := range s {
+		// TODO 在缓存获取
 		doc, _ := new(APIDoc).Get(theme, v.Key)
 		data = append(data, &FullList{
 			Id:          v.Key,
@@ -82,6 +85,7 @@ func (api *APISearch) SearchFull(theme, word, sortType string, count int) ([]*Fu
 			Author:      doc.Author,
 			OrderInt:    doc.OrderInt,
 			Description: doc.Description,
+			Content:     doc.Content,
 			End:         v.End,
 			Start:       v.Start,
 			Theme:       v.TermText,
@@ -93,7 +97,7 @@ func (api *APISearch) SearchFull(theme, word, sortType string, count int) ([]*Fu
 	return data, nil
 }
 
-func (api *APISearch) Search(theme, word, sortType string, count int) ([]*entity.PLTerm, error) {
+func (api *APISearch) Search(theme, word, sortType string, pg, count int) ([]*entity.PLTerm, error) {
 	data := make([]*entity.PLTerm, 0)
 
 	// 判断是否存在 theme
@@ -110,14 +114,14 @@ func (api *APISearch) Search(theme, word, sortType string, count int) ([]*entity
 
 	hasMap := map[string]struct{}{}
 	l := 0 // TODO 翻页
-	for _, v := range termList {
 
-		pl := core.GetSearchFile(theme, v.Text, sortType)
+	// TODO 需要并发
+	for _, v := range termList {
+		logger.Error("v.Text = ", v.Text)
+		logger.Error("pg = ", pg)
+		pl := core.GetSearchFile(theme, v.Text, sortType, pg)
 		for i, d := range pl {
 			if i > count {
-				break
-			}
-			if l > count {
 				break
 			}
 			_, ok := hasMap[d.Key]
