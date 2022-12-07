@@ -34,7 +34,7 @@ func (api *APITheme) ThemeCacheGet(theme string) (*entity.Theme, error) {
 
 func (api *APITheme) Created(theme *entity.Theme) error {
 	themeFilePath := entity.ThemePath + theme.Name
-
+	logger.Info("theme file = ", themeFilePath)
 	if utils.FileExists(themeFilePath) {
 		logger.Error("已经创建")
 		return fmt.Errorf("theme存在")
@@ -69,6 +69,38 @@ func (api *APITheme) Created(theme *entity.Theme) error {
 	// 更新缓存
 	api.ThemeCacheInit()
 
+	return nil
+}
+
+func (api *APITheme) Set2File(theme *entity.Theme) error {
+	themeFilePath := entity.ThemePath + theme.Name
+	themeData, err := utils.DataEncoder(theme)
+	if err != nil {
+		logger.Error("文档不能被压缩, err = ", err)
+		return err
+	}
+	file, err := os.OpenFile(themeFilePath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		logger.Error("文件打开失败", err)
+		return err
+	}
+	//及时关闭file句柄
+	defer func() {
+		_ = file.Close()
+	}()
+	//写入文件时，使用带缓存的 *Writer
+	write := bufio.NewWriter(file)
+	_, err = write.Write(themeData)
+	if err != nil {
+		logger.Error("文件写入失败, err = ", err)
+		return err
+	}
+	// Flush将缓存的文件真正写入到文件中
+	err = write.Flush()
+	if err != nil {
+		logger.Error("写入到文件中失败, err = ", err)
+		return err
+	}
 	return nil
 }
 
@@ -114,3 +146,10 @@ func (api *APITheme) GetAllName() []string {
 	data := make([]string, 0)
 	return data
 }
+
+// TODO 文档总大小
+// TODO 索引总大小
+// TODO 重置索引
+// TODO 清空索引
+// TODO 文档导出 - excel
+// TODO 文档导出 - mysql

@@ -26,10 +26,13 @@ func init() {
 	if err != nil {
 		panic("[致命错误] 加载分词词典失败！")
 	}
+
+	// 初始化 元数据分片对象
+	NewMetaData()
 }
 
 // TermExtract 提取索引词
-// 除了标点符号，其他都被分出来
+// 除了标点符号，助词，语气词，形容词，叹词 其他都被分出来
 func TermExtract(str string) []*entity.Term {
 	segments := seg.Segment([]byte(str))
 	termList := make([]*entity.Term, 0)
@@ -40,12 +43,15 @@ func TermExtract(str string) []*entity.Term {
 		end := v.End()
 		start := v.Start()
 		//logger.Info("txt = ", txt, p)
-		if p == "w" {
+
+		if p == "w" || p == "u" || p == "y" || p == "a" || p == "e" {
 			continue
 		}
+
 		if p == "x" && !utils.ContainsEnglishAndNumber(txt) {
 			continue
 		}
+
 		termList = append(termList, &entity.Term{
 			Text:  txt,
 			Freq:  t.Freq(),
@@ -150,7 +156,7 @@ func setPostings(docId, dir string, docStamp, orderInt float64, term *entity.Ter
 func SetPostings(theme, docId, text string, docStamp, orderInt int64) {
 	dir := entity.IndexPath + theme + "/"
 	for _, v := range TermExtract(text) {
-		go setPostings(docId, dir, float64(docStamp), float64(orderInt), v)
+		setPostings(docId, dir, float64(docStamp), float64(orderInt), v)
 	}
 }
 
@@ -164,7 +170,7 @@ func SetPostingsAuthor(theme, docId, text string, docStamp, orderInt int64) {
 		Start: len(text),
 	})
 	for _, v := range list {
-		go setPostings(docId, dir, float64(docStamp), float64(orderInt), v)
+		setPostings(docId, dir, float64(docStamp), float64(orderInt), v)
 	}
 }
 

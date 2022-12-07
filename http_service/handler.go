@@ -157,6 +157,8 @@ func CreatedTheme(c *gin.Context) {
 		APIOutPut(c, 1, 0, "", err.Error())
 		return
 	}
+	param.DocNumber = 0
+	param.MetaData = make(map[string]*entity.MetaData, 0)
 	err = new(api.APITheme).Created(param)
 	if err != nil {
 		APIOutPut(c, 1, 0, "", err.Error())

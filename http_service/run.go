@@ -25,7 +25,7 @@ func RunHttpService() {
 	}
 
 	for i := 0; i < 5; i++ {
-		go func() {
+		go func(i int) {
 			gin.SetMode(gin.ReleaseMode)
 			s := Routers()
 			lis, err := lc.Listen(context.Background(), "tcp", "0.0.0.0:14444")
@@ -37,7 +37,7 @@ func RunHttpService() {
 			if err != nil {
 				panic("启动 http api 失败, err =  " + err.Error())
 			}
-		}()
+		}(i)
 	}
 
 }

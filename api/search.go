@@ -66,6 +66,7 @@ type FullList struct {
 	Theme       string  `json:"theme"`
 	SortType    string  `json:"sort_type"`
 	SortValue   float64 `json:"sort_value"`
+	Md5         string  `json:"md5"`
 }
 
 func (api *APISearch) SearchFull(theme, word, sortType string, pg, count int) ([]*FullList, error) {
@@ -91,6 +92,7 @@ func (api *APISearch) SearchFull(theme, word, sortType string, pg, count int) ([
 			Theme:       v.TermText,
 			SortType:    sortType,
 			SortValue:   v.Value,
+			Md5:         doc.SumMD5,
 		})
 	}
 

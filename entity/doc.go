@@ -9,4 +9,5 @@ type Doc struct {
 	OrderInt    int64  `json:"order_int"`   // 文档排序值，对文档进行排序
 	Content     string `json:"content"`     // 文档内容
 	Description string `json:"description"` // 文档描述
+	SumMD5      string `json:"md5"`         // 文档md5
 }

@@ -19,8 +19,8 @@ var (
 )
 
 func main() {
-	//data, _ := SpiderBaseDB.Query("select * from tbl_topic where fid=1 group by tid limit 105;")
-	data, _ := SpiderBaseDB.Query("select * from tbl_topic where tid < 400000")
+	data, _ := SpiderBaseDB.Query("select * from tbl_topic where fid=1 group by tid limit 1050;")
+	//data, _ := SpiderBaseDB.Query("select * from tbl_topic where tid < 400000")
 	for _, v := range data {
 		//log.Println(v)
 
