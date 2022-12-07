@@ -4,14 +4,12 @@ import (
 	"github.com/mangenotwork/search/api"
 	"github.com/mangenotwork/search/conf"
 	"github.com/mangenotwork/search/http_service"
-	"github.com/mangenotwork/search/utils"
+	"runtime"
 )
 
-func InitPath() {
-	utils.Mkdir(conf.Conf.DataPath)
-}
-
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	
 	// 读取配置文件
 	conf.InitConf()
 

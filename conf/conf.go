@@ -37,6 +37,8 @@ func InitConf() {
 		panic("【启动失败】读取配置文件" + err.Error())
 	}
 
+	utils.Mkdir(Conf.DataPath)
+
 	utils.Mkdir(Conf.DataPath + "/doc/")
 	utils.Mkdir(Conf.DataPath + "/index/")
 	utils.Mkdir(Conf.DataPath + "/theme/")

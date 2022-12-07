@@ -50,31 +50,3 @@ func Find(term string) []string {
 	}
 	return strings.Split(string(content), ";")
 }
-
-// 可以用于去重
-type Set map[string]struct{}
-
-func NewSet() Set {
-	return Set{}
-}
-
-func (s Set) Has(key string) bool {
-	_, ok := s[key]
-	return ok
-}
-
-func (s Set) Add(key string) {
-	s[key] = struct{}{}
-}
-
-func (s Set) Delete(key string) {
-	delete(s, key)
-}
-
-func (s Set) List() []string {
-	l := make([]string, 0)
-	for k, _ := range s {
-		l = append(l, k)
-	}
-	return l
-}

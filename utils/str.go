@@ -1,6 +1,9 @@
 package utils
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
 
 // Any2Int interface{} -> int
 func Any2Int(data interface{}) int {
@@ -47,4 +50,24 @@ func Any2Int(data interface{}) int {
 		break
 	}
 	return t2
+}
+
+func ContainsEnglish(str string) bool {
+	dictionary := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	for _, v := range str {
+		if strings.Contains(dictionary, string(v)) {
+			return true
+		}
+	}
+	return false
+}
+
+func ContainsEnglishAndNumber(str string) bool {
+	dictionary := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	for _, v := range str {
+		if strings.Contains(dictionary, string(v)) {
+			return true
+		}
+	}
+	return false
 }

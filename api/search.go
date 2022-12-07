@@ -27,10 +27,10 @@ func (api *APISearch) SearchId(theme, word, sortType string, pg, count int) ([]s
 }
 
 type OutList struct {
-	Id        string
-	Title     string
-	TimeStamp int64
-	Author    string
+	Id        string `json:"id"`
+	Title     string `json:"title"`
+	TimeStamp int64  `json:"timestamp"`
+	Author    string `json:"author"`
 }
 
 func (api *APISearch) SearchList(theme, word, sortType string, pg, count int) ([]*OutList, error) {
@@ -54,18 +54,18 @@ func (api *APISearch) SearchList(theme, word, sortType string, pg, count int) ([
 }
 
 type FullList struct {
-	Id          string
-	Title       string
-	TimeStamp   int64
-	Author      string
-	OrderInt    int64
-	Description string
-	Content     string
-	End         int
-	Start       int
-	Theme       string
-	SortType    string
-	SortValue   float64
+	Id          string  `json:"id"`
+	Title       string  `json:"title"`
+	TimeStamp   int64   `json:"timestamp"`
+	Author      string  `json:"author"`
+	OrderInt    int64   `json:"order_int"`
+	Description string  `json:"description"`
+	Content     string  `json:"content"`
+	End         int     `json:"end"`
+	Start       int     `json:"start"`
+	Theme       string  `json:"theme"`
+	SortType    string  `json:"sort_type"`
+	SortValue   float64 `json:"sort_value"`
 }
 
 func (api *APISearch) SearchFull(theme, word, sortType string, pg, count int) ([]*FullList, error) {

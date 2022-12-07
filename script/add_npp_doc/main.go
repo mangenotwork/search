@@ -19,7 +19,8 @@ var (
 )
 
 func main() {
-	data, _ := SpiderBaseDB.Query("select * from tbl_topic where fid=1 group by tid limit 10555;")
+	//data, _ := SpiderBaseDB.Query("select * from tbl_topic where fid=1 group by tid limit 105;")
+	data, _ := SpiderBaseDB.Query("select * from tbl_topic where tid < 400000")
 	for _, v := range data {
 		//log.Println(v)
 
@@ -62,7 +63,7 @@ func main() {
 				"description": ""
 			}`
 		log.Println(j)
-		ctx, _ := gt.PostJson("http://127.0.0.1:14444/doc/case2", j)
+		ctx, _ := gt.PostJson("http://127.0.0.1:14444/doc/case1", j)
 		gt.Info(ctx.Json)
 	}
 

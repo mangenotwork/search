@@ -26,3 +26,9 @@ postingList : 倒排列表
 自定义排序: 排序值 > 时序
 
 
+# 分词
+- https://github.com/go-ego/gse/blob/master/README_zh.md  (选定)
+- https://github.com/huichen/sego （备选）
+- https://github.com/wangbin/jiebago （备选，需要g++）
+- 词性对照表： http://t.zoukankan.com/i80386-p-3403644.html
+

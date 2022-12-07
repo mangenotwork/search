@@ -11,11 +11,9 @@ import (
 
 var Router *gin.Engine
 
-func init() {
-	Router = gin.Default()
-}
-
 func Routers() *gin.Engine {
+
+	Router = gin.Default()
 
 	V1()
 
