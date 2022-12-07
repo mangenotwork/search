@@ -3,6 +3,7 @@ package http_service
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/mangenotwork/search/api"
 	"github.com/mangenotwork/search/entity"
 	"github.com/mangenotwork/search/utils"
@@ -10,6 +11,8 @@ import (
 	"net/http"
 	"time"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // ResponseJson 统一接口输出
 type ResponseJson struct {
@@ -21,6 +24,32 @@ type ResponseJson struct {
 	Take      int64       `json:"took"`
 	TakeStr   string      `json:"took_str"`
 	TimeStamp int64       `json:"timeStamp"`
+}
+
+func SearchOutPut(c *gin.Context, code int64, count int, data interface{}, msg string) {
+	tum, _ := c.Get("tum")
+	t2 := time.Now().UnixNano()
+	t := t2 - tum.(int64)
+	resp := &ResponseJson{
+		Code:      code,
+		Msg:       msg,
+		Body:      data,
+		Count:     count,
+		TimeStamp: time.Now().Unix(),
+		Take:      t,
+		TakeStr:   fmt.Sprintf("%fms", float64(t)/1e6),
+	}
+
+	logger.Info("将结果写入缓存")
+	api.UrlCacheObj.Set(c.Request.URL.String(), &api.UrlBody{
+		Body:       data,
+		Count:      count,
+		Url:        c.Request.URL.String(),
+		Expiration: 10, // 10s
+	})
+
+	c.IndentedJSON(http.StatusOK, resp)
+	return
 }
 
 // APIOutPut 统一接口输出方法
@@ -50,10 +79,25 @@ func Index(c *gin.Context) {
 }
 
 func Search(c *gin.Context) {
-	theme := c.Param("theme")   // *theme  主题
-	word := c.Query("word")     // *word  搜索词
-	sortType := c.Query("sort") // sort  排序类型 t: 时间，  o: 排序值, f: 词频   默认t
-	// *out   输出结构  默认 id
+
+	caseUrl := c.Request.URL.String()
+
+	logger.Info("caseUrl = ", caseUrl)
+	if body, ok := api.UrlCacheObj.Get(caseUrl); ok {
+		SearchOutPut(c, 0, body.Count, body.Body, "ok")
+		return
+	}
+
+	theme := c.Param("theme") // *theme  主题
+	word := c.Query("word")   // *word  搜索词
+
+	// sort  排序类型  默认t
+	// t: 时间，
+	// o: 排序值,
+	// f: 词频
+	sortType := c.Query("sort")
+
+	// out   输出结构  默认 id
 	// id: 只输出docId,
 	// list: 输出列表有 docId title author time_stamp OrderInt ,
 	// full: 输出除 content 外的数据，并且含有关键词的 位置信息数据
@@ -96,21 +140,21 @@ func Search(c *gin.Context) {
 			APIOutPut(c, 1, 0, "", err.Error())
 			return
 		}
-		APIOutPut(c, 0, len(data), data, "ok")
+		SearchOutPut(c, 0, len(data), data, "ok")
 	case "list":
 		data, err := new(api.APISearch).SearchList(theme, word, sortType, pg, count)
 		if err != nil {
 			APIOutPut(c, 1, 0, "", err.Error())
 			return
 		}
-		APIOutPut(c, 0, len(data), data, "ok")
+		SearchOutPut(c, 0, len(data), data, "ok")
 	case "full":
 		data, err := new(api.APISearch).SearchFull(theme, word, sortType, pg, count)
 		if err != nil {
 			APIOutPut(c, 1, 0, "", err.Error())
 			return
 		}
-		APIOutPut(c, 0, len(data), data, "ok")
+		SearchOutPut(c, 0, len(data), data, "ok")
 	}
 
 }
@@ -141,8 +185,19 @@ func SetDoc(c *gin.Context) {
 
 func GetDoc(c *gin.Context) {
 	theme := c.Param("theme") //主题
-	docId := c.Query("doc_id")
+	docId := c.Param("doc_id")
 	data, err := new(api.APIDoc).Get(theme, docId)
+	if err != nil {
+		APIOutPut(c, 1, 0, "", err.Error())
+		return
+	}
+	APIOutPut(c, 0, 0, data, "ok")
+}
+
+func GetDocTerm(c *gin.Context) {
+	theme := c.Param("theme") //主题
+	docId := c.Param("doc_id")
+	data, err := new(api.APIDoc).GetTerm(theme, docId)
 	if err != nil {
 		APIOutPut(c, 1, 0, "", err.Error())
 		return

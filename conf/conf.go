@@ -42,9 +42,10 @@ func InitConf() {
 	utils.Mkdir(Conf.DataPath + "/doc/")
 	utils.Mkdir(Conf.DataPath + "/index/")
 	utils.Mkdir(Conf.DataPath + "/theme/")
+	utils.Mkdir(Conf.DataPath + "/term/")
 
 	entity.ThemePath = Conf.DataPath + "/theme/"
 	entity.DocPath = Conf.DataPath + "/doc/"
 	entity.IndexPath = Conf.DataPath + "/index/"
-
+	entity.DocTerm = Conf.DataPath + "/term/"
 }

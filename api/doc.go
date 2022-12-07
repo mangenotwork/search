@@ -70,6 +70,9 @@ func (api *APIDoc) Set(theme string, doc *entity.Doc) error {
 		return err
 	}
 
+	// 更新或加入缓存
+	DocLru.Put(fmt.Sprintf("%s_%s", theme, doc.ID), doc)
+
 	// 查看是否存在，内容是否有变化
 	if utils.FileExists(docFilePath) {
 		docObj := &entity.Doc{}
@@ -148,6 +151,11 @@ func (api *APIDoc) doc2File(docFilePath string, docData []byte) error {
 
 func (api *APIDoc) Get(theme string, docId string) (*entity.Doc, error) {
 	data := &entity.Doc{}
+	// 读缓存
+	if value, ok := DocLru.Get(fmt.Sprintf("%s_%s", theme, docId)); ok {
+		logger.Info("存在缓存")
+		return value, nil
+	}
 
 	themeObj, err := new(APITheme).ThemeCacheGet(theme)
 	if err != nil {
@@ -181,5 +189,11 @@ func (api *APIDoc) Get(theme string, docId string) (*entity.Doc, error) {
 
 	}
 	err = utils.DataDecoder(content, &data)
+	// 加入缓存
+	DocLru.Put(fmt.Sprintf("%s_%s", theme, docId), data)
 	return data, err
+}
+
+func (api *APIDoc) GetTerm(theme string, docId string) ([]string, error) {
+	return core.GetDocTerm(entity.DocTerm + theme + "/" + docId)
 }

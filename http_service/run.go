@@ -2,6 +2,7 @@ package http_service
 
 import (
 	"context"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/mangenotwork/search/utils/logger"
 	"golang.org/x/sys/unix"
@@ -27,7 +28,7 @@ func RunHttpService() {
 	for i := 0; i < 5; i++ {
 		go func(i int) {
 			gin.SetMode(gin.ReleaseMode)
-			s := Routers()
+			s := Routers(fmt.Sprintf("%d", i))
 			lis, err := lc.Listen(context.Background(), "tcp", "0.0.0.0:14444")
 			if err != nil {
 				panic("启动 http api 失败, err =  " + err.Error())

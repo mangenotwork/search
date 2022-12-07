@@ -71,3 +71,18 @@ func ContainsEnglishAndNumber(str string) bool {
 	}
 	return false
 }
+
+func StrDuplicates(a []string) []string {
+	m := make(map[string]struct{})
+	ret := make([]string, 0, len(a))
+	for i := 0; i < len(a); i++ {
+		if a[i] == "" {
+			continue
+		}
+		if _, ok := m[a[i]]; !ok {
+			m[a[i]] = struct{}{}
+			ret = append(ret, a[i])
+		}
+	}
+	return ret
+}

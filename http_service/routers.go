@@ -11,24 +11,24 @@ import (
 
 var Router *gin.Engine
 
-func Routers() *gin.Engine {
+func Routers(id string) *gin.Engine {
 
 	Router = gin.Default()
 
-	V1()
+	V1(id)
 
 	return Router
 }
 
 // HttpMiddleware http中间件
-func HttpMiddleware() gin.HandlerFunc {
+func HttpMiddleware(id string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		t1 := time.Now().UnixNano()
 		ip := GetIP(ctx.Request)
 		ctx.Set("tum", t1)
 		ctx.Next()
 		t2 := time.Now().UnixNano()
-		logger.Infof("[HTTP] %v | %v | %vum | %vms", ip, ctx.Request.URL.Path, t2-t1, float64(t2-t1)/1e6)
+		logger.Infof("[HTTP] %v | service: %s | %v | %vum | %vms", ip, id, ctx.Request.URL.Path, t2-t1, float64(t2-t1)/1e6)
 	}
 }
 

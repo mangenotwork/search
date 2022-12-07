@@ -3,13 +3,11 @@ package core
 import (
 	"bufio"
 	"fmt"
-	"os"
-	"sort"
-	"strings"
-
 	"github.com/mangenotwork/search/entity"
 	"github.com/mangenotwork/search/utils"
 	"github.com/mangenotwork/search/utils/logger"
+	"os"
+	"sort"
 
 	"github.com/go-ego/gse"
 )
@@ -32,7 +30,7 @@ func init() {
 }
 
 // TermExtract 提取索引词
-// 除了标点符号，助词，语气词，形容词，叹词 其他都被分出来
+// 除了标点符号，助词，语气词，形容词，叹词, 副词 其他都被分出来
 func TermExtract(str string) []*entity.Term {
 	segments := seg.Segment([]byte(str))
 	termList := make([]*entity.Term, 0)
@@ -44,7 +42,7 @@ func TermExtract(str string) []*entity.Term {
 		start := v.Start()
 		//logger.Info("txt = ", txt, p)
 
-		if p == "w" || p == "u" || p == "y" || p == "a" || p == "e" {
+		if p == "w" || p == "u" || p == "uj" || p == "y" || p == "a" || p == "e" || p == "d" {
 			continue
 		}
 
@@ -57,40 +55,8 @@ func TermExtract(str string) []*entity.Term {
 			Freq:  t.Freq(),
 			End:   end,
 			Start: start,
+			Pos:   p,
 		})
-	}
-	return termList
-}
-
-/*
-GetTermCase
-
-	保留词规则 : n + x(英文) + i
-	名词	n	n
-	名语素	ng	ng
-	人名	nr	nr
-	地名	ns	ns
-	机构团体	nt
-	外文字符	nx
-	其他专名	nz
-	i  成语
-	j  简略语
-*/
-func GetTermCase(str string) []string {
-	segments := seg.Segment([]byte(str))
-	termList := make([]string, 0)
-	for _, v := range segments {
-		t := v.Token()
-		p := t.Pos()
-		txt := t.Text()
-		logger.Info("txt = ", txt, p)
-		if strings.Index(p, "n") == -1 && p != "x" && p != "i" && p != "j" {
-			continue
-		}
-		if p == "x" && !utils.ContainsEnglish(txt) {
-			continue
-		}
-		termList = append(termList, txt)
 	}
 	return termList
 }
@@ -155,13 +121,23 @@ func setPostings(docId, dir string, docStamp, orderInt float64, term *entity.Ter
 
 func SetPostings(theme, docId, text string, docStamp, orderInt int64) {
 	dir := entity.IndexPath + theme + "/"
+	docTermPath := entity.DocTerm + theme + "/" + docId
+	utils.Mkdir(entity.DocTerm + theme)
+	docTerm, _ := GetDocTerm(docTermPath)
+
 	for _, v := range TermExtract(text) {
+		docTerm = append(docTerm, v.Text)
 		setPostings(docId, dir, float64(docStamp), float64(orderInt), v)
 	}
+	SetDocTerm(docTermPath, docTerm)
 }
 
 func SetPostingsAuthor(theme, docId, text string, docStamp, orderInt int64) {
 	dir := entity.IndexPath + theme + "/"
+	docTermPath := entity.DocTerm + theme + "/" + docId
+	utils.Mkdir(entity.DocTerm + theme)
+	docTerm, _ := GetDocTerm(docTermPath)
+
 	list := TermExtract(text)
 	list = append(list, &entity.Term{
 		Text:  text,
@@ -170,8 +146,57 @@ func SetPostingsAuthor(theme, docId, text string, docStamp, orderInt int64) {
 		Start: len(text),
 	})
 	for _, v := range list {
+		docTerm = append(docTerm, v.Text)
 		setPostings(docId, dir, float64(docStamp), float64(orderInt), v)
 	}
+	SetDocTerm(docTermPath, docTerm)
+}
+
+func GetDocTerm(filePath string) ([]string, error) {
+	data := make([]string, 0)
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		logger.Errorf("read file error:%v\n", err)
+		return data, err
+	}
+	err = utils.DataDecoder(content, &data)
+	if err != nil {
+		logger.Error("pltFile 读取数据失败 = ", err)
+	}
+	return data, err
+}
+
+func SetDocTerm(filePath string, data []string) {
+
+	data = utils.StrDuplicates(data)
+	docData, err := utils.DataEncoder(data)
+	if err != nil {
+		logger.Error("文档不能被压缩, err = ", err)
+		return
+	}
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		logger.Error("文件打开失败", err)
+		return
+	}
+	//及时关闭file句柄
+	defer func() {
+		_ = file.Close()
+	}()
+	//写入文件时，使用带缓存的 *Writer
+	write := bufio.NewWriter(file)
+	_, err = write.Write(docData)
+	if err != nil {
+		logger.Error("文件写入失败, err = ", err)
+		return
+	}
+	// Flush将缓存的文件真正写入到文件中
+	err = write.Flush()
+	if err != nil {
+		logger.Error("写入到文件中失败, err = ", err)
+		return
+	}
+	return
 }
 
 func setPLData(docId, plType string, value, sortPara1, sortPara2 float64, pliObj *PLInfo, term *entity.Term) {

@@ -110,21 +110,37 @@ func (api *APISearch) Search(theme, word, sortType string, pg, count int) ([]*en
 
 	// TODO 判断 word 已经是一个 term , 如果是就不用 分词取 term
 
-	// 拆分搜索词, 聚合搜索结果  TODO 多线程实现
-	// 首词(第一个词)的权重最大， 取满数量
+	// 拆分搜索词, 聚合搜索结果
+	// 首词(第一个词)的权重最大， 依次取满数量  TODO 搜索词的权重
 	termList := core.TermExtract(word)
 
-	hasMap := map[string]struct{}{}
-	l := 0 // TODO 翻页
+	// TODO 如果 termList 取不到词，例如 输入 的, 就匹配一个相关的词
+	if len(termList) < 1 {
+		logger.Info("没有找到词的索引，匹配一个相关的")
 
-	// TODO 需要并发
+	}
+
+	hasMap := map[string]struct{}{}
+	l := 0 // 计数
 	for _, v := range termList {
 		logger.Error("v.Text = ", v.Text)
 		logger.Error("pg = ", pg)
 		pl := core.GetSearchFile(theme, v.Text, sortType, pg)
-		for i, d := range pl {
-			if i > count {
-				break
+
+		// 第一个词就满足了条数，直接返回
+		// 100是默认值
+		if len(pl) >= 100 {
+			for _, d := range pl {
+				data = append(data, &entity.PLTerm{v.Text, *d})
+			}
+			return data, nil
+		}
+
+		// 第一个词不够，有好多往里填好多
+		for _, d := range pl {
+			if l >= 100 {
+				// 数量够 直接返回
+				return data, nil
 			}
 			_, ok := hasMap[d.Key]
 			if !ok {
@@ -134,8 +150,5 @@ func (api *APISearch) Search(theme, word, sortType string, pg, count int) ([]*en
 			}
 		}
 	}
-
-	// TODO 更具 sortType 获取 doc 的数据
-
 	return data, nil
 }

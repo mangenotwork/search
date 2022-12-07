@@ -4,4 +4,5 @@ var (
 	ThemePath string
 	DocPath   string
 	IndexPath string
+	DocTerm   string
 )

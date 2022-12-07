@@ -5,6 +5,7 @@ type Term struct {
 	Freq  float64
 	End   int
 	Start int
+	Pos   string
 }
 
 type PL struct {
